@@ -14,39 +14,75 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    nodejs \
-    npm
-
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libgd-dev \
+    jpegoptim \
+    optipng \
+    pngquant \
+    gifsicle \
+    vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        sockets
+
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy seluruh aplikasi dulu
-COPY --chown=www-data:www-data . /var/www/html
+# Copy composer files first for better Docker layer caching
+COPY composer.json composer.lock* ./
 
-# Install dependencies jika composer.json ada
-RUN if [ -f "composer.json" ]; then \
-        composer install --no-dev --optimize-autoloader --no-scripts; \
-    else \
-        echo "Warning: composer.json not found, skipping composer install"; \
-    fi
+# Install PHP dependencies
+RUN composer install --no-scripts --no-autoloader --ansi --no-interaction --no-dev --prefer-dist
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html
+# Copy application code
+COPY . .
 
-# Create storage dan bootstrap cache directories jika belum ada
-RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
-    && mkdir -p bootstrap/cache \
+# Complete composer setup
+RUN composer dump-autoload --optimize
+
+# Create necessary directories and set permissions
+RUN mkdir -p \
+        storage/app/public \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
-# Change current user to www
+# Copy custom PHP configuration
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Copy PHP-FPM configuration
+COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+
+# Create Laravel log file
+RUN touch storage/logs/laravel.log \
+    && chown www-data:www-data storage/logs/laravel.log
+
+# Switch to www-data user
 USER www-data
 
-# Expose port 9000 and start php-fpm server
+# Expose port 9000 for PHP-FPM
 EXPOSE 9000
+
+# Start PHP-FPM
 CMD ["php-fpm"]
