@@ -98,13 +98,49 @@ class ProdukController extends Controller
                         'jenis_mutasi' => $mutasi->jenis_mutasi,
                         'jumlah' => $mutasi->jumlah,
                         'keterangan' => $mutasi->keterangan,
-                        'user' => $mutasi->user->name, // Fixed: 'nama' -> 'name'
+                        'user' => $mutasi->user->name,
                         'lokasi' => $mutasi->produkLokasi->lokasi->nama_lokasi,
                         'kode_lokasi' => $mutasi->produkLokasi->lokasi->kode_lokasi,
                         'stok_sekarang' => $mutasi->produkLokasi->stok,
                     ];
                 }),
             ],
+        ]);
+    }
+
+    // Method baru untuk generate kode produk
+    public function generateKodeProduk(Request $request)
+    {
+        $request->validate([
+            'kategori_code' => 'required|string',
+            'kategori_name' => 'required|string'
+        ]);
+
+        $kategoriCode = $request->kategori_code;
+        $kategoriName = $request->kategori_name;
+
+        // Cari kode produk terakhir dengan kategori yang sama
+        $lastProduk = Produk::where('kode_produk', 'LIKE', $kategoriCode . '%')
+                           ->orderBy('kode_produk', 'desc')
+                           ->first();
+
+        if ($lastProduk) {
+            // Extract nomor dari kode produk terakhir
+            $lastNumber = intval(substr($lastProduk->kode_produk, 3));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        // Format nomor dengan leading zeros (3 digit)
+        $kodeProduk = $kategoriCode . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'kode_produk' => $kodeProduk,
+                'kategori' => $kategoriName
+            ]
         ]);
     }
 }

@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Mutasi;
 use App\Models\ProdukLokasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 
 class MutasiController extends Controller
 {
@@ -179,6 +181,100 @@ class MutasiController extends Controller
             'data' => $mutasi,
         ]);
     }
+
+    // Tambahkan method ini ke MutasiController.php
+
+public function pindahLokasi(Request $request)
+{
+    // Validate input
+    $request->validate([
+        'produk_id' => 'required|exists:produk,id',
+        'lokasi_asal_id' => 'required|exists:lokasi,id',
+        'lokasi_tujuan_id' => 'required|exists:lokasi,id|different:lokasi_asal_id',
+        'jumlah' => 'required|integer|min:1',
+        'tanggal' => 'required|date',
+        'keterangan' => 'nullable|string',
+    ]);
+
+    // Get lokasi names for keterangan
+    $lokasiAsal = \App\Models\Lokasi::findOrFail($request->lokasi_asal_id);
+    $lokasiTujuan = \App\Models\Lokasi::findOrFail($request->lokasi_tujuan_id);
+    $produk = \App\Models\Produk::findOrFail($request->produk_id);
+
+    // Find produk_lokasi asal
+    $produkLokasiAsal = ProdukLokasi::where('produk_id', $request->produk_id)
+                                   ->where('lokasi_id', $request->lokasi_asal_id)
+                                   ->first();
+
+    if (!$produkLokasiAsal) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Produk tidak ditemukan di lokasi asal',
+        ], 422);
+    }
+
+    // Check stock availability
+    if ($produkLokasiAsal->stok < $request->jumlah) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Stok tidak mencukupi di lokasi asal. Stok tersedia: ' . $produkLokasiAsal->stok,
+        ], 422);
+    }
+
+    // Find or create produk_lokasi tujuan
+    $produkLokasiTujuan = ProdukLokasi::firstOrCreate([
+        'produk_id' => $request->produk_id,
+        'lokasi_id' => $request->lokasi_tujuan_id,
+    ], [
+        'stok' => 0
+    ]);
+
+    // Start database transaction
+    DB::beginTransaction();
+
+    try {
+        // Create mutasi keluar (dari lokasi asal)
+        $mutasiKeluar = Mutasi::create([
+            'tanggal' => $request->tanggal,
+            'jenis_mutasi' => 'keluar',
+            'jumlah' => $request->jumlah,
+            'keterangan' => ($request->keterangan ?? '') . " - Pindah ke {$lokasiTujuan->nama_lokasi}",
+            'user_id' => $request->user()->id,
+            'produk_lokasi_id' => $produkLokasiAsal->id,
+            'stok_sebelum' => $produkLokasiAsal->stok,
+            'stok_sesudah' => $produkLokasiAsal->stok - $request->jumlah,
+        ]);
+
+        // Create mutasi masuk (ke lokasi tujuan)
+        $mutasiMasuk = Mutasi::create([
+            'tanggal' => $request->tanggal,
+            'jenis_mutasi' => 'masuk',
+            'jumlah' => $request->jumlah,
+            'keterangan' => ($request->keterangan ?? '') . " - Pindah dari {$lokasiAsal->nama_lokasi}",
+            'user_id' => $request->user()->id,
+            'produk_lokasi_id' => $produkLokasiTujuan->id,
+            'stok_sebelum' => $produkLokasiTujuan->stok,
+            'stok_sesudah' => $produkLokasiTujuan->stok + $request->jumlah,
+        ]);
+
+        // Commit transaction
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil memindahkan {$request->jumlah} {$produk->nama_produk} dari {$lokasiAsal->nama_lokasi} ke {$lokasiTujuan->nama_lokasi}",
+        ], 201);
+
+    } catch (\Exception $e) {
+        // Rollback transaction
+        DB::rollback();
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat memindahkan produk: ' . $e->getMessage(),
+        ], 500);
+    }
+}
 
     public function destroy($id)
     {

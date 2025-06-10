@@ -28,9 +28,14 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><i class="fas fa-warehouse me-2"></i>Inventory CRUD</a>
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <i class="fas fa-warehouse me-2"></i>Inventory CRUD
+            </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3" id="current-time"></span>
+                <button class="btn btn-outline-light me-2" onclick="goToProfile()">
+                    <i class="fas fa-user me-1"></i>Profil
+                </button>
                 <button class="btn btn-outline-light" onclick="logout()">
                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                 </button>
@@ -267,6 +272,11 @@
             setInterval(updateTime, 1000);
         });
 
+        function goToProfile() {
+            // Menggunakan route Laravel yang sudah didefinisikan
+            window.location.href = "{{ route('profile') }}";
+        }
+
         function loadUserInfo() {
             const userData = JSON.parse(sessionStorage.getItem('user_data'));
             if (userData) {
@@ -430,8 +440,7 @@
                             <button class="btn btn-sm btn-primary btn-action" onclick="showModal('stok', 'edit', ${item.id})" title="Edit Stok">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteItem('stok', ${item.id})"
- title="Hapus">
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteItem('produk-lokasi', ${item.id})" title="Hapus">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -496,61 +505,30 @@
                 case 'produk':
                     return `
                         <div class="mb-3">
-                    <label class="form-label">Pilih Kategori *</label>
-                    <div class="category-selection mb-2">
-                        <div class="btn-group-vertical w-100" role="group">
-                            <input type="radio" class="btn-check" name="kategori_radio" id="lap" value="LAP|Laptop & Aksesoris" onchange="generateProductId(this.value)">
-                            <label class="btn btn-outline-primary text-start" for="lap">
-                                <i class="fas fa-laptop me-2"></i>Laptop & Aksesoris
-                            </label>
-                            
-                            <input type="radio" class="btn-check" name="kategori_radio" id="kpc" value="KPC|Komponen PC" onchange="generateProductId(this.value)">
-                            <label class="btn btn-outline-primary text-start" for="kpc">
-                                <i class="fas fa-microchip me-2"></i>Komponen PC
-                            </label>
-                            
-                            <input type="radio" class="btn-check" name="kategori_radio" id="pta" value="PTA|Perangkat Tambahan" onchange="generateProductId(this.value)">
-                            <label class="btn btn-outline-primary text-start" for="pta">
-                                <i class="fas fa-plug me-2"></i>Perangkat Tambahan
-                            </label>
-                            
-                            <input type="radio" class="btn-check" name="kategori_radio" id="net" value="NET|Jaringan" onchange="generateProductId(this.value)">
-                            <label class="btn btn-outline-primary text-start" for="net">
-                                <i class="fas fa-network-wired me-2"></i>Jaringan
-                            </label>
-                            
-                            <input type="radio" class="btn-check" name="kategori_radio" id="sto" value="STO|Penyimpanan" onchange="generateProductId(this.value)">
-                            <label class="btn btn-outline-primary text-start" for="sto">
-                                <i class="fas fa-hdd me-2"></i>Penyimpanan
-                            </label>
+                            <label class="form-label">Kode Produk *</label>
+                            <input type="text" class="form-control" id="kode_produk" value="${data?.kode_produk || ''}" required>
+                            <div class="form-text">Kode unik untuk produk (contoh: PRD001)</div>
                         </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Kode Produk *</label>
-                    <input type="text" class="form-control" id="kode_produk" value="${data?.kode_produk || ''}" readonly style="background-color: #f8f9fa;">
-                    <div class="form-text">Kode akan otomatis dibuat setelah memilih kategori</div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Kategori</label>
-                    <input type="text" class="form-control" id="kategori" value="${data?.kategori || ''}" readonly style="background-color: #f8f9fa;">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Nama Produk *</label>
-                    <input type="text" class="form-control" id="nama_produk" value="${data?.nama_produk || ''}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Satuan *</label>
-                    <input type="text" class="form-control" id="satuan" value="${data?.satuan || ''}" required placeholder="Pcs, Kg, Liter, dll">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Harga *</label>
-                    <input type="number" class="form-control" id="harga" value="${data?.harga || ''}" required min="0" step="0.01">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Deskripsi</label>
-                    <textarea class="form-control" id="deskripsi" rows="3">${data?.deskripsi || ''}</textarea>
-                </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nama Produk *</label>
+                            <input type="text" class="form-control" id="nama_produk" value="${data?.nama_produk || ''}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kategori</label>
+                            <input type="text" class="form-control" id="kategori" value="${data?.kategori || ''}" placeholder="Elektronik, Makanan, dll">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Satuan *</label>
+                            <input type="text" class="form-control" id="satuan" value="${data?.satuan || ''}" required placeholder="Pcs, Kg, Liter, dll">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Harga *</label>
+                            <input type="number" class="form-control" id="harga" value="${data?.harga || ''}" required min="0" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="deskripsi" rows="3">${data?.deskripsi || ''}</textarea>
+                        </div>
                     `;
                 case 'lokasi':
                     return `
@@ -839,11 +817,22 @@
         }
 
         function logout() {
-            if (confirm('Yakin ingin logout?')) {
-                sessionStorage.clear();
-                window.location.href = '/login';
-            }
+            Swal.fire({
+                title: 'Yakin ingin logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, logout',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#aaa'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sessionStorage.clear();
+                    window.location.href = '/login';
+                }
+            });
         }
+
 
         // Initialize tab change handlers
         document.addEventListener('DOMContentLoaded', function() {
@@ -855,132 +844,8 @@
                 });
             });
         });
-
-        // Fungsi sederhana untuk generate product ID
-async function generateProductId(categoryValue) {
-    try {
-        // Parse category value (format: "LAP|Laptop & Aksesoris")
-        const [kategoriCode, kategoriName] = categoryValue.split('|');
-        
-        console.log('Generate kode untuk:', kategoriCode, '-', kategoriName);
-        
-        // Set loading state
-        const kodeInput = document.getElementById('kode_produk');
-        const kategoriInput = document.getElementById('kategori');
-        
-        kodeInput.value = 'Generating...';
-        kategoriInput.value = 'Loading...';
-        
-        // Ambil token dari sessionStorage (sudah terbukti valid)
-        const token = sessionStorage.getItem('auth_token');
-        
-        if (!token) {
-            throw new Error('Token tidak ditemukan. Silakan login ulang.');
-        }
-        
-        console.log('Using token:', token.substring(0, 10) + '...');
-        
-        // Call API untuk generate kode
-        const response = await fetch('/api/produk/generate-kode', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                kategori_code: kategoriCode,
-                kategori_name: kategoriName
-            })
-        });
-        
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Response error:', errorText);
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('API Response:', result);
-        
-        if (result.success) {
-            // Update form fields
-            kodeInput.value = result.data.kode_produk;
-            kategoriInput.value = result.data.kategori;
-            
-            console.log('✅ Kode berhasil di-generate:', result.data.kode_produk);
-            
-            // Show success notification
-            if (typeof toastr !== 'undefined') {
-                toastr.success('Kode produk berhasil di-generate!');
-            } else {
-                console.log('SUCCESS: Kode produk berhasil di-generate!');
-            }
-        } else {
-            throw new Error(result.message || 'Gagal generate kode produk');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error generating product code:', error);
-        
-        // Reset fields pada error
-        document.getElementById('kode_produk').value = '';
-        document.getElementById('kategori').value = '';
-        
-        // Show error notification
-        if (typeof toastr !== 'undefined') {
-            toastr.error('Error: ' + error.message);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire('Error!', error.message, 'error');
-        } else {
-            alert('Error: ' + error.message);
-        }
-    }
-}
-
-// Test function untuk memastikan endpoint berfungsi
-async function testGenerateEndpoint() {
-    try {
-        const token = sessionStorage.getItem('auth_token');
-        
-        console.log('🧪 Testing generate endpoint...');
-        
-        const response = await fetch('/api/produk/generate-kode', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                kategori_code: 'LAP',
-                kategori_name: 'Laptop & Aksesoris'
-            })
-        });
-        
-        console.log('Test response status:', response.status);
-        
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ Test successful:', result);
-            return result;
-        } else {
-            const errorText = await response.text();
-            console.error('❌ Test failed:', response.status, errorText);
-            return null;
-        }
-        
-    } catch (error) {
-        console.error('❌ Test error:', error);
-        return null;
-    }
-}
-
-// Expose functions to window for manual testing
-window.generateProductId = generateProductId;
-window.testGenerateEndpoint = testGenerateEndpoint;
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </body>
 </html>
